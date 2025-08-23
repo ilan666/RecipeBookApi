@@ -47,6 +47,7 @@ INSTALLED_APPS = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "https://localhost:3000",
+    "https://recipe-book-f4528.web.app"
 ]
 
 REST_FRAMEWORK = {

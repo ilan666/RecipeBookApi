@@ -103,19 +103,43 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         try:
             recipe = Recipe.objects.get(id=kwargs['pk'])
+
+            if 'image' in request.data:
+                recipe.image = request.data['image']
+                recipe.save()
+
         except:
             response = {'Message': 'Recipe not found!'}
             return Response(response, status=status.HTTP_404_NOT_FOUND)
 
+        try:
+            recipe_ingredient_records = RecipeIngredient.objects.filter(recipe=recipe)
+            for record in recipe_ingredient_records:
+                exists = False
+                for ingredient in ingredients_data:
+                    if ingredient['id'] == record.ingredient.id:
+                        exists = True
+                        break
+                if not exists:
+                    record.delete()
+        except:
+            response = {'Message': 'Failed to get recipe ingredient existing records!'}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
         for ingredient in ingredients_data:
             try:
                 dbingredient = Ingredient.objects.get(id=ingredient['id'])
+            except:
+                response = {'Message': 'Ingredient not found!'}
+                return Response(response, status=status.HTTP_404_NOT_FOUND)
+
+            try:
                 RecipeIngredient.objects.get_or_create(recipe=recipe,
                                                        ingredient=dbingredient,
                                                        amount=ingredient['amount'],
                                                        prefix=ingredient['prefix'])
             except:
-                response = {'Message': 'Failed to update recipe data!'}
+                response = {'Message': 'Failed to update recipe ingredients data!'}
                 return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         for instruction in instructions_data:
