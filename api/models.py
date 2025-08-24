@@ -9,11 +9,12 @@ class Ingredient(models.Model):
         ('Fruits', 'Fruits'),
         ('Seasoning', 'Seasoning'),
         ('Diary', 'Diary'),
+        ('Meaty', 'Meaty'),
         ('Sweets', 'Sweets'),
         ('Baking', 'Baking'),
         ('Sauces', 'Sauces'),
         ('Oils', 'Oils'),
-        ('Seeds', 'Seeds'),
+        ('Basic', 'Basic'),
         ('Fluids', 'Fluids'),
     )
 
@@ -86,14 +87,16 @@ class Instruction(models.Model):
 class RecipeIngredient(models.Model):
     PREFIX_CHOICES = (
         ('', ''),
-        ('g', 'g'),
-        ('ml', 'ml'),
+        ('G', 'G'),
+        ('Ml', 'Ml'),
+        ('Table Spoon', 'Table Spoon'),
+        ('Tea Spoon', 'Tea Spoon'),
     )
 
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
-    amount = models.PositiveIntegerField(default=1, null=False, blank=False)
-    prefix = models.CharField(max_length=10, null=False, blank=True, choices=PREFIX_CHOICES)
+    amount = models.DecimalField(default=1, decimal_places=1, max_digits=5, null=False, blank=False)
+    prefix = models.CharField(max_length=20, null=False, blank=True, choices=PREFIX_CHOICES)
 
     class Meta:
         unique_together = ('recipe', 'ingredient')
