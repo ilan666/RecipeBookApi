@@ -1,9 +1,9 @@
 from rest_framework import serializers, status
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
-from rest_framework.response import Response
 
 from api.models import Recipe, Ingredient, Instruction, RecipeIngredient
+
 
 class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
@@ -60,11 +60,12 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     user_recipes = RecipeSerializer(many=True, read_only=True, source='recipes')
-    password = serializers.CharField(write_only=True, required=True)  # <-- add
+    password = serializers.CharField(write_only=True, required=True)
+    email = serializers.CharField(required=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'password', 'user_recipes')
+        fields = ('id', 'username', 'password', 'email', 'user_recipes')
         extra_kwargs = {'user_recipes': {'required': False}}
 
     def create(self, validated_data):
@@ -74,3 +75,13 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
         Token.objects.create(user=user)
         return user
+
+    def update(self, instance, validated_data):
+        if 'username' in validated_data:
+            instance.username = validated_data.get('username', instance.username)
+        if 'password' in validated_data:
+            instance.set_password(validated_data.get('password', instance.password))
+        if 'email' in validated_data:
+            instance.email = validated_data.get('email', instance.email)
+        instance.save()
+        return instance

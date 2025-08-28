@@ -1,4 +1,10 @@
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.utils.crypto import get_random_string
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -6,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 import json
+from rest_framework.views import APIView
 
 from api.models import Recipe, Ingredient, Instruction, RecipeIngredient
 from api.serializers import RecipeSerializer, IngredientSerializer, InstructionSerializer, RecipeIngredientSerializer, \
@@ -168,6 +175,22 @@ class IngredientViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
     authentication_classes = (TokenAuthentication,)
 
+    def destroy(self, request, *args, **kwargs):
+        ingredient = self.get_object()
+
+        try:
+            records = RecipeIngredient.objects.filter(ingredient=ingredient)
+            if records.exists() > 0:
+                response = {'Message': 'Ingredient is in use! Can not delete!'}
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                ingredient.delete()
+                response = {'Message': 'Ingredient deleted!'}
+                return Response(response, status=status.HTTP_204_NO_CONTENT)
+        except:
+            response = {'Message': 'Could not get attached recipes ingredient records!'}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
 class InstructionViewSet(viewsets.ModelViewSet):
     queryset = Instruction.objects.all()
     serializer_class = InstructionSerializer
@@ -179,3 +202,31 @@ class RecipeIngredientViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeIngredientSerializer
     permission_classes = (IsAuthenticated,)
     authentication_classes = (TokenAuthentication,)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = ()
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email', None)
+        try:
+            user = User.objects.get(email=email)
+        except:
+            return Response({"Message": "User with this email does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        token = get_random_string(length=32)
+
+        # Build password reset link
+        reset_link = request.build_absolute_uri(
+            reverse('password-reset', kwargs={'token': token})
+        )
+
+        send_mail(
+            'Password Reset Request',
+            f'Click the link below to reset your password: {reset_link}',
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+        )
+
+        return Response({"detail": "Password reset link sent to your email."}, status=status.HTTP_200_OK)

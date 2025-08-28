@@ -95,7 +95,7 @@ class RecipeIngredient(models.Model):
 
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
-    amount = models.DecimalField(default=1, decimal_places=1, max_digits=5, null=False, blank=False)
+    amount = models.DecimalField(default=1, decimal_places=2, max_digits=6, null=False, blank=False)
     prefix = models.CharField(max_length=20, null=False, blank=True, choices=PREFIX_CHOICES)
 
     class Meta:
