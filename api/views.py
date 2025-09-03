@@ -7,16 +7,16 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 import json
 from rest_framework.views import APIView
 
-from api.models import Recipe, Ingredient, Instruction, RecipeIngredient
+from api.models import Recipe, Ingredient, Instruction, RecipeIngredient, Rating
 from api.serializers import RecipeSerializer, IngredientSerializer, InstructionSerializer, RecipeIngredientSerializer, \
-    UserSerializer
+    UserSerializer, RatingSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -168,6 +168,28 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer = RecipeSerializer(recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=['post'], parser_classes=[JSONParser])
+    def rate_recipe(self, request, pk=None):
+        if 'stars' in request.data:
+            recipe = Recipe.objects.get(id=pk)
+            stars = request.data['stars']
+            user = request.user
+
+            try:
+                rating = Rating.objects.get(user=user.id, recipe=recipe.id)  # Trying to get existing rating object
+                rating.stars = stars  # Updating stars field
+                rating.save()
+                serializer = RatingSerializer(rating, many=False)  # Serialize what to display
+                response = {'Message': 'Rating updated', 'Result': serializer.data}
+                return Response(response, status=status.HTTP_200_OK)
+            except:
+                newRating = Rating.objects.create(recipe=recipe, user=user, stars=stars)  # Rating class object creation
+                serializer = RatingSerializer(newRating, many=False)
+                response = {'Message': 'Created new rating', 'result': serializer.data}
+                return Response(response, status=status.HTTP_200_OK)
+        else:
+            response = {'message': 'You need to provide stars'}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
 class IngredientViewSet(viewsets.ModelViewSet):
     queryset = Ingredient.objects.all()

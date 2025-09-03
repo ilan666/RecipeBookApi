@@ -69,9 +69,17 @@ class Recipe(models.Model):
     def __str__(self):
         return self.title
 
-    def no_of_steps(self):
-        steps = Instruction.objects.filter(recipe=self)
-        return len(steps)
+    def no_of_ratings(self):
+        ratings = Rating.objects.filter(recipe=self)
+        return len(ratings)
+
+    def avg_rating(self):
+        ratings = Rating.objects.filter(recipe=self)
+        if len(ratings) == 0: return 0
+        sum = 0
+        for rating in ratings:
+            sum += rating.stars
+        return sum / len(ratings)
 
     class Meta:
         ordering = ['-created_at']
@@ -101,3 +109,8 @@ class RecipeIngredient(models.Model):
     class Meta:
         unique_together = ('recipe', 'ingredient')
         indexes = [models.Index(fields=['recipe', 'ingredient'])]
+
+class Rating(models.Model):
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    stars = models.PositiveIntegerField(default=0, validators=[MinValueValidator(0)], blank=False, null=False)

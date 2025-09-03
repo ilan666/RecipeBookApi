@@ -2,7 +2,7 @@ from rest_framework import serializers, status
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 
-from api.models import Recipe, Ingredient, Instruction, RecipeIngredient
+from api.models import Recipe, Ingredient, Instruction, RecipeIngredient, Rating
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -19,6 +19,8 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = serializers.SerializerMethodField()
     instructions = serializers.SerializerMethodField()
     author_username = serializers.SerializerMethodField()
+    no_of_ratings = serializers.SerializerMethodField()
+    avg_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
@@ -35,6 +37,12 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def get_author_username(self, obj):
         return obj.author.username
+
+    def get_no_of_ratings(self, obj):
+        return obj.no_of_ratings()
+
+    def get_avg_rating(self, obj):
+        return obj.avg_rating()
 
 class RecipeIngredientSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
@@ -85,3 +93,8 @@ class UserSerializer(serializers.ModelSerializer):
             instance.email = validated_data.get('email', instance.email)
         instance.save()
         return instance
+
+class RatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Rating
+        fields = '__all__'
